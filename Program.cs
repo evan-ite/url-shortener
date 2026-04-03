@@ -14,7 +14,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
 );
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql("Host=localhost;Database=urlshortener;Username=admin;Password=password")
+    options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
 );
 
 var app = builder.Build();
