@@ -12,7 +12,7 @@
         <button type="submit">Shorten</button>
     </form>
 
-    <p id="result"></p>
+    <a id="result" href="#" target="_blank" style="display:none"></a>
 
     <script>
         document.getElementById('shorten-form').addEventListener('submit', async (event) => {
@@ -27,7 +27,10 @@
             });
     
             const result = await response.json();
-            document.getElementById('result').textContent = result;
+            const link = document.getElementById('result');
+            link.href = result;
+            link.textContent = result;
+            link.style.display = 'inline';
         });
     </script>
     

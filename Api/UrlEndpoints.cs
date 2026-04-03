@@ -9,16 +9,16 @@ public static class UrlEndpoints
 {
     public static void MapUrlEndpoints(this WebApplication app)
     {
-        app.MapPost("/shorten", async (ShortenRequest request, IDistributedCache cache, AppDbContext db) =>
+        app.MapPost("/shorten", async (ShortenRequest body, HttpRequest request, IDistributedCache cache, AppDbContext db) =>
         {
             var shortCode = Guid.NewGuid().ToString()[..6];
 
-            db.Urls.Add(new ShortenedUrl { ShortCode = shortCode, OriginalUrl = request.Url });
+            db.Urls.Add(new ShortenedUrl { ShortCode = shortCode, OriginalUrl = body.Url });
             await db.SaveChangesAsync();
 
-            await cache.SetStringAsync(shortCode, request.Url);
+            await cache.SetStringAsync(shortCode, body.Url);
 
-            return Results.Ok($"http://localhost:5292/{shortCode}");
+            return Results.Ok($"{request.Scheme}://{request.Host}/{shortCode}");
         });
 
         app.MapGet("/{shortCode}", async (string shortCode, IDistributedCache cache, AppDbContext db) =>
