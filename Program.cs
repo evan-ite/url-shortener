@@ -1,5 +1,4 @@
 using url_shortener.Endpoints;
-using StackExchange.Redis;
 using url_shortener.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,9 +8,10 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddSingleton<IConnectionMultiplexer>(
-    ConnectionMultiplexer.Connect("localhost:6379")
+builder.Services.AddStackExchangeRedisCache(options =>
+    options.Configuration = builder.Configuration.GetConnectionString("Redis")
 );
+
 
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("Postgres"))
