@@ -1,4 +1,6 @@
 using StackExchange.Redis;
+using url_shortener.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace url_shortener.Endpoints;
 
@@ -6,20 +8,30 @@ public static class UrlEndpoints
 {
     public static void MapUrlEndpoints(this WebApplication app)
     {
-        app.MapPost("/shorten", async (ShortenRequest request, IConnectionMultiplexer redis) =>
+        app.MapPost("/shorten", async (ShortenRequest request, IConnectionMultiplexer redis, AppDbContext db) =>
         {
-            var db = redis.GetDatabase();
             var shortCode = Guid.NewGuid().ToString()[..6];
-            await db.StringSetAsync(shortCode, request.Url);
+
+            db.Urls.Add(new ShortenedUrl { ShortCode = shortCode, OriginalUrl = request.Url });
+            await db.SaveChangesAsync();
+
+            var cache = redis.GetDatabase();
+            await cache.StringSetAsync(shortCode, request.Url);
+
             return Results.Ok($"http://localhost:5292/{shortCode}");
         });
 
-        app.MapGet("/{shortCode}", async (string shortCode, IConnectionMultiplexer redis) =>
+        app.MapGet("/{shortCode}", async (string shortCode, IConnectionMultiplexer redis, AppDbContext db) =>
         {
-            var db = redis.GetDatabase();
-            var url = await db.StringGetAsync(shortCode);
-            if (url.IsNullOrEmpty) return Results.NotFound();
-            return Results.Redirect(url!);
+            var cache = redis.GetDatabase();
+            var cachedUrl = await cache.StringGetAsync(shortCode);
+            if (!cachedUrl.IsNullOrEmpty) return Results.Redirect(cachedUrl!);
+
+            var entry = await db.Urls.FirstOrDefaultAsync(u => u.ShortCode == shortCode);
+            if (entry is null) return Results.NotFound();
+
+            await cache.StringSetAsync(shortCode, entry.OriginalUrl);
+            return Results.Redirect(entry.OriginalUrl);
         });
     }
 }

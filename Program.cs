@@ -1,5 +1,7 @@
 using url_shortener.Endpoints;
 using StackExchange.Redis;
+using url_shortener.Data;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +13,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(
     ConnectionMultiplexer.Connect("localhost:6379")
 );
 
+builder.Services.AddDbContext<AppDbContext>(options =>
+    options.UseNpgsql("Host=localhost;Database=urlshortener;Username=admin;Password=password")
+);
 
 var app = builder.Build();
 
